@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>100 Fiil Otomatik Quiz — İngilizce → Türkçe</title>
+<style>
+  body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#0f172a; color:#e6eef8; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+  .card { width:min(820px,95%); background:linear-gradient(180deg,#0b1220 0%, #0d2437 100%); border-radius:14px; padding:28px; box-shadow: 0 10px 30px rgba(2,6,23,0.6); }
+  h1 { margin:0 0 6px 0; font-size:20px; letter-spacing:0.2px; color:#cfe8ff; }
+  p.sub { margin:0 0 18px 0; color:#9fb7d4; font-size:13px; }
+  .display { border-radius:10px; padding:28px; background:rgba(255,255,255,0.02); display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:18px; min-height:170px; justify-content:center; }
+  .eng { font-size:46px; font-weight:700; letter-spacing:0.6px; color:#eaf6ff; }
+  .tur { font-size:28px; color:#a6e3a1; opacity:0; transition:opacity .25s ease; }
+  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  button { background:#1e293b; color:#e6eef8; border:0; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+  button.ghost { background:transparent; border:1px solid rgba(255,255,255,0.06); }
+  .progress-wrap { margin-top:12px; display:flex; gap:12px; align-items:center; }
+  input[type=range] { width:260px; }
+  .meta { color:#9fb7d4; font-size:13px; margin-left:auto; }
+  .list-preview { max-height:120px; overflow:auto; margin-top:12px; padding:10px; background:rgba(255,255,255,0.02); border-radius:8px; font-size:13px; color:#cfe8ff; }
+  .small { font-size:12px; color:#9fb7d4; }
+  .progressbar { width:100%; height:10px; background:rgba(255,255,255,0.06); border-radius:999px; overflow:hidden; }
+  .progress { height:100%; width:0%; background:linear-gradient(90deg,#60a5fa,#7c3aed); transition:width .2s linear; }
+  footer { margin-top:14px; color:#9fb7d4; font-size:12px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  a { color:#93c5fd; text-decoration:none; }
+  @media (max-width:520px){ .eng{font-size:34px} .tur{font-size:20px} }
+</style>
+</head>
+<body>
+  <div class="card" role="application" aria-label="100 fiil otomatik quiz">
+    <h1>100 Düzensiz / Yaygın Fiil — İngilizce → Türkçe</h1>
+    <p class="sub">Her fiilin önce İngilizcesi gösterilir — 5s sonra Türkçesi görünür — 1s sonra sonraki fiile geçilir. (Toplam ~10 dakika)</p>
+
+    <div class="display" aria-live="polite">
+      <div class="eng" id="eng">Hazır?</div>
+      <div class="tur" id="tur">Başlat düğmesine bas.</div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn">Başlat</button>
+      <button id="pauseBtn" class="ghost" disabled>Durdur</button>
+      <button id="restartBtn" class="ghost">Baştan</button>
+
+      <div style="width:8px"></div>
+
+      <label class="small" for="delayEng">İng→Türk gecikme (s)</label>
+      <input id="delayEng" type="range" min="1" max="10" value="5" />
+      <span class="meta" id="delayVal">5s</span>
+
+      <div style="width:12px"></div>
+
+      <label class="small" for="delayNext">Türk→Sonraki (s)</label>
+      <input id="delayNext" type="range" min="0" max="5" value="1" />
+      <span class="meta" id="nextVal">1s</span>
+    </div>
+
+    <div class="progress-wrap" aria-hidden="false">
+      <div style="width:86%;">
+        <div class="progressbar" aria-hidden="true"><div class="progress" id="progress"></div></div>
+        <div class="small" style="margin-top:6px" id="counter">0 / 100</div>
+      </div>
+      <div style="width:12%"><button id="exportBtn" class="ghost">Listeyi Kopyala</button></div>
+    </div>
+
+    <div class="list-preview" id="preview" aria-hidden="true"></div>
+
+    <footer>
+      <div class="small">Kaynak: kullanıcı yüklemesi — 100 fiil listesi</div>
+      <div class="small">Hazırlandığı an: <strong>Hemen</strong></div>
+    </footer>
+  </div>
+
+<script>
+/*
+  Veri: 100 fiil (base form) ve Türkçe karşılıkları
+  Not: Bazı fiillerin Türkçede birden çok karşılığı vardır; burada kısa ve yaygın karşılıklar kullanıldı.
+*/
+const verbs = [
+ // {eng:"awake", tr:"uyanmak"},
+//  {eng:"be", tr:"olmak"},
+//  {eng:"beat", tr:"dövmek / yenmek"},
+ // {eng:"begin", tr:"başlamak"},
+  //{eng:"bite", tr:"ısırmak"},
+ // {eng:"blow", tr:"üflemek"},
+ // {eng:"break", tr:"kırmak"},
+  //{eng:"bring", tr:"getirmek"},
+  //{eng:"build", tr:"inşa etmek"},
+ // {eng:"buy", tr:"satın almak"},
+ // {eng:"catch", tr:"yakalamak"},
+ // {eng:"choose", tr:"seçmek"},
+ // {eng:"come", tr:"gelmek"},
+ // {eng:"cost", tr:"mal olmak"},
+  //{eng:"cut", tr:"kesmek"},
+//  {eng:"do", tr:"yapmak"},
+ // {eng:"deal", tr:"uğraşmak / ilgilenmek"},
+  //{eng:"dig", tr:"kazmak"},
+//  {eng:"dream", tr:"rüya görmek"},
+ // {eng:"draw", tr:"çizmek"},
+//  {eng:"drink", tr:"içmek"},
+//  {eng:"drive", tr:"sürmek"},
+ // {eng:"eat", tr:"yemek"},
+//  {eng:"fall", tr:"düşmek"},
+  //{eng:"feed", tr:"beslemek"},
+ // {eng:"feel", tr:"hissetmek"},
+//  {eng:"fight", tr:"kavga etmek"},
+ // {eng:"find", tr:"bulmak"},
+//  {eng:"fly", tr:"uçmak"},
+  //{eng:"forget", tr:"unutmak"},
+ // {eng:"forgive", tr:"affetmek"},
+ // {eng:"freeze", tr:"donmak"},
+//  {eng:"get", tr:"almak"},
+//  {eng:"give", tr:"vermek"},
+  //{eng:"go", tr:"gitmek"},
+ // {eng:"grow", tr:"büyümek"},
+//  {eng:"hang", tr:"asmak"},
+ // {eng:"have", tr:"sahip olmak"},
+ // {eng:"hear", tr:"duymak"},
+ // {eng:"hide", tr:"saklamak"},
+//  {eng:"hit", tr:"vurmak"},
+ // {eng:"hold", tr:"tutmak"},
+//  {eng:"hurt", tr:"incitmek"},
+ // {eng:"keep", tr:"tutmak"},
+ // {eng:"know", tr:"bilmek"},
+ //{eng:"lay", tr:"koymak"},
+ // {eng:"lead", tr:"yönetmek / öncülük etmek"},
+//  {eng:"leave", tr:"ayrılmak / bırakmak"},
+  //{eng:"lend", tr:"ödünç vermek"},
+// {eng:"let", tr:"izin vermek"},
+  //{eng:"lie", tr:"uzanmak"},
+ //{eng:"lose", tr:"kaybetmek"},
+//  {eng:"make", tr:"yapmak"},
+ // {eng:"mean", tr:"anlamına gelmek"},
+//  {eng:"meet", tr:"tanışmak / buluşmak"},
+ // {eng:"pay", tr:"ödemek"},
+ // {eng:"put", tr:"koymak"},
+//{eng:"quit", tr:"bırakmak"},
+ // {eng:"read", tr:"okumak"},
+//  {eng:"ride", tr:"binmek"},
+ // {eng:"ring", tr:"çalmak (zil/telefon)"},
+ //{eng:"rise", tr:"yükselmek"},
+ // {eng:"run", tr:"koşmak"},
+//  {eng:"say", tr:"söylemek"},
+//  {eng:"see", tr:"görmek"},
+ // {eng:"seek", tr:"aramak (çabalamak)"},
+ // {eng:"sell", tr:"satmak"},
+//  {eng:"send", tr:"göndermek"},
+ // {eng:"set", tr:"ayarlamak / koymak"},
+ // {eng:"sew", tr:"dikmek"},
+ // {eng:"shake", tr:"sallamak"},
+  //{eng:"shine", tr:"parlamak"},
+ // {eng:"shoot", tr:"ateş etmek / vurmak"},
+ // {eng:"show", tr:"göstermek"},
+ //{eng:"sing", tr:"şarkı söylemek"},
+  {eng:"sink", tr:"batmak"},
+//  {eng:"sit", tr:"oturmak"},
+//  {eng:"sleep", tr:"uyumak"},
+//  {eng:"slide", tr:"kaymak"},
+ // {eng:"speak", tr:"konuşmak"},
+  {eng:"spend", tr:"harcamak"},
+  //{eng:"spread", tr:"yaymak"},
+//  {eng:"stand", tr:"ayakta durmak"},
+ // {eng:"steal", tr:"çalmak"},
+ // {eng:"stick", tr:"yapıştırmak"},
+ // {eng:"strike", tr:"vurmak / grev yapmak"},
+  {eng:"swear", tr:"küfretmek / yemin etmek"},
+  {eng:"sweep", tr:"süpürmek"},
+  {eng:"swell", tr:"şişmek"},
+  //{eng:"swim", tr:"yüzmek"},
+  {eng:"swing", tr:"sallanmak"},
+  //{eng:"take", tr:"almak"},
+ // {eng:"teach", tr:"öğretmek"},
+  //{eng:"tear", tr:"yırtmak"},
+ // {eng:"tell", tr:"anlatmak"},
+ // {eng:"think", tr:"düşünmek"},
+ // {eng:"wear", tr:"giymek"},
+ // {eng:"weep", tr:"ağlamak"},
+ // {eng:"win", tr:"kazanmak"},
+//  {eng:"write", tr:"yazmak"}
+];
+
+const engEl = document.getElementById('eng');
+const turEl  = document.getElementById('tur');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const restartBtn = document.getElementById('restartBtn');
+const delayEng = document.getElementById('delayEng');
+const delayNext = document.getElementById('delayNext');
+const delayVal = document.getElementById('delayVal');
+const nextVal = document.getElementById('nextVal');
+const progressEl = document.getElementById('progress');
+const counterEl = document.getElementById('counter');
+const preview = document.getElementById('preview');
+const exportBtn = document.getElementById('exportBtn');
+
+let index = 0;
+let running = false;
+let timers = []; // to keep timeouts so we can clear on pause
+let showDelay = parseInt(delayEng.value,10) * 1000; // ms
+let nextDelay = parseInt(delayNext.value,10) * 1000; // ms
+
+// fill preview
+preview.innerHTML = verbs.map((v,i)=> `<strong>${i+1}.</strong> ${v.eng} — <span style="color:#9fb7d4">${v.tr}</span>`).join('<br/>');
+
+function clearAllTimers(){
+  timers.forEach(t => clearTimeout(t));
+  timers = [];
+}
+
+function updateProgress(){
+  const pct = Math.round((index/verbs.length)*100);
+  progressEl.style.width = pct + '%';
+  counterEl.textContent = `${Math.min(index, verbs.length)} / ${verbs.length}`;
+}
+
+function showPair(i){
+  if(i >= verbs.length){
+    engEl.textContent = "Bitti ✅";
+    turEl.textContent = "Tebrikler — liste tamamlandı.";
+    turEl.style.opacity = 1;
+    running = false;
+    pauseBtn.disabled = true;
+    startBtn.textContent = "Yeniden Başlat";
+    index = verbs.length;
+    updateProgress();
+    return;
+  }
+
+  const item = verbs[i];
+  turEl.style.opacity = 0;
+  engEl.textContent = item.eng;
+  turEl.textContent = item.tr;
+  updateProgress();
+
+  // show translation after showDelay
+  const t1 = setTimeout(()=>{
+    turEl.style.opacity = 1;
+  }, showDelay);
+  timers.push(t1);
+
+  // schedule next item after showDelay + nextDelay
+  const t2 = setTimeout(()=>{
+    index = i + 1;
+    // proceed if still running
+    if(running) showPair(index);
+  }, showDelay + nextDelay);
+  timers.push(t2);
+}
+
+startBtn.addEventListener('click', ()=>{
+  if(!running){
+    // start
+    running = true;
+    startBtn.textContent = "Çalışıyor... (Duraklatmak için Durdur'a bas)";
+    pauseBtn.disabled = false;
+    // if at end or initial 'Hazır?', start from 0
+    if(index >= verbs.length) index = 0;
+    // if index is 0 and display is initial, start with current index
+    clearAllTimers();
+    showPair(index);
+  } else {
+    // already running, no-op
+  }
+});
+
+pauseBtn.addEventListener('click', ()=>{
+  if(running){
+    running = false;
+    startBtn.textContent = "Devam Et";
+    pauseBtn.disabled = true;
+    clearAllTimers();
+  }
+});
+
+restartBtn.addEventListener('click', ()=>{
+  clearAllTimers();
+  running = false;
+  index = 0;
+  engEl.textContent = "Hazır?";
+  turEl.textContent = "Başlat düğmesine bas.";
+  turEl.style.opacity = 0;
+  startBtn.textContent = "Başlat";
+  pauseBtn.disabled = true;
+  updateProgress();
+});
+
+delayEng.addEventListener('input', (e)=>{
+  delayVal.textContent = e.target.value + "s";
+  showDelay = parseInt(e.target.value,10) * 1000;
+});
+delayNext.addEventListener('input', (e)=>{
+  nextVal.textContent = e.target.value + "s";
+  nextDelay = parseInt(e.target.value,10) * 1000;
+});
+
+exportBtn.addEventListener('click', ()=>{
+  const txt = verbs.map((v,i)=> `${i+1}. ${v.eng} — ${v.tr}`).join('\\n');
+  navigator.clipboard.writeText(txt).then(()=> {
+    exportBtn.textContent = "Kopyalandı!";
+    setTimeout(()=> exportBtn.textContent = "Listeyi Kopyala",1200);
+  }).catch(()=> {
+    alert("Kopyalama başarısız. Sayfayı manuel olarak kopyalayın.");
+  });
+});
+
+// keyboard shortcuts: space to start/pause
+window.addEventListener('keydown', (e)=>{
+  if(e.code === "Space"){
+    e.preventDefault();
+    if(running) pauseBtn.click(); else startBtn.click();
+  }
+});
+
+// initialize
+updateProgress();
+</script>
+</body>
+</html>
