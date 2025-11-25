@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>100 Fiil Otomatik Quiz — İngilizce → Türkçe</title>
+<title>Quiz — İngilizce → Türkçe</title>
 <style>
   body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#0f172a; color:#e6eef8; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
   .card { width:min(820px,95%); background:linear-gradient(180deg,#0b1220 0%, #0d2437 100%); border-radius:14px; padding:28px; box-shadow: 0 10px 30px rgba(2,6,23,0.6); }
@@ -28,9 +28,14 @@
 </style>
 </head>
 <body>
-  <div class="card" role="application" aria-label="100 fiil otomatik quiz">
-    <h1>100 Düzensiz / Yaygın Fiil — İngilizce → Türkçe</h1>
-    <p class="sub">Her fiilin önce İngilizcesi gösterilir — 5s sonra Türkçesi görünür — 1s sonra sonraki fiile geçilir. (Toplam ~10 dakika)</p>
+  <div class="card" role="application" aria-label="Otomatik quiz">
+    <h1 id="mainTitle">100 Düzensiz / Yaygın Fiil — İngilizce → Türkçe</h1>
+    <p class="sub">Her kelimenin önce İngilizcesi gösterilir — <span id="delayVal2">5s</span> sonra Türkçesi görünür — <span id="nextVal2">1s</span> sonra sonraki kelimeye geçilir.</p>
+
+        <div class="category-select">
+        <label><input type="radio" name="category" value="verbs" checked> Yaygın Fiiller (100)</label>
+        <label><input type="radio" name="category" value="placeAdverbs"> Yer Belirteçleri (20)</label>
+    </div>
 
     <div class="display" aria-live="polite">
       <div class="eng" id="eng">Hazır?</div>
@@ -62,130 +67,160 @@
       </div>
       <div style="width:12%"><button id="exportBtn" class="ghost">Listeyi Kopyala</button></div>
     </div>
-    
-    <div style="margin-top: 10px; display:flex; justify-content:space-between; align-items:flex-end;">
-        <p style="font-size: 14px; color: #9fb7d4; font-weight: 600; margin-bottom: 0;">Quiz'den Kaldırılacak Öğrenilmiş Fiiller:</p>
-        <button id="clearStorageBtn" class="ghost" style="padding: 5px 10px; font-size: 12px;">Öğrenilenleri Sıfırla 🧹</button>
-    </div>
+    
+    <div style="margin-top: 10px; display:flex; justify-content:space-between; align-items:flex-end;">
+        <p style="font-size: 14px; color: #9fb7d4; font-weight: 600; margin-bottom: 0;"><span id="previewTitle">Fiillerin</span> Önizlemesi ve Öğrenilenleri İşaretleme:</p>
+        <button id="clearStorageBtn" class="ghost" style="padding: 5px 10px; font-size: 12px;">Öğrenilenleri Sıfırla 🧹</button>
+    </div>
     <div class="list-preview" id="preview" aria-hidden="true"></div>
 
     <footer>
-      <div class="small">Kaynak: kullanıcı yüklemesi — 100 fiil listesi</div>
+      <div class="small">Kaynak: kullanıcı yüklemesi — <span id="listNameFooter">100 fiil</span> listesi</div>
       <div class="small">Hazırlandığı an: <strong>Hemen</strong></div>
     </footer>
   </div>
 
 <script>
 /*
-  Veri: 100 fiil (base form) ve Türkçe karşılıkları
-  Not: Bazı fiillerin Türkçede birden çok karşılığı vardır; burada kısa ve yaygın karşılıklar kullanıldı.
+  Veri Kümeleri: Fiiller ve Yer Belirteçleri ayrı nesnelerde tutuluyor.
 */
-const allVerbs = [ 
-  {eng:"awake", tr:"uyanmak"},
-  {eng:"be", tr:"olmak"},
-  {eng:"beat", tr:"dövmek / yenmek"},
-  {eng:"begin", tr:"başlamak"},
-  {eng:"bite", tr:"ısırmak"},
-  {eng:"blow", tr:"üflemek"},
-  {eng:"break", tr:"kırmak"},
-  {eng:"bring", tr:"getirmek"},
-  {eng:"build", tr:"inşa etmek"},
-  {eng:"buy", tr:"satın almak"},
-  {eng:"catch", tr:"yakalamak"},
-  {eng:"choose", tr:"seçmek"},
-  {eng:"come", tr:"gelmek"},
-  {eng:"cost", tr:"mal olmak"},
-  {eng:"cut", tr:"kesmek"},
-  {eng:"do", tr:"yapmak"},
-  {eng:"deal", tr:"uğraşmak / ilgilenmek"},
-  {eng:"dig", tr:"kazmak"},
-  {eng:"dream", tr:"rüya görmek"},
-  {eng:"draw", tr:"çizmek"},
-  {eng:"drink", tr:"içmek"},
-  {eng:"drive", tr:"sürmek"},
-  {eng:"eat", tr:"yemek"},
-  {eng:"fall", tr:"düşmek"},
-  {eng:"feed", tr:"beslemek"},
-  {eng:"feel", tr:"hissetmek"},
-  {eng:"fight", tr:"kavga etmek"},
-  {eng:"find", tr:"bulmak"},
-  {eng:"fly", tr:"uçmak"},
-  {eng:"forget", tr:"unutmak"},
-  {eng:"forgive", tr:"affetmek"},
-  {eng:"freeze", tr:"donmak"},
-  {eng:"get", tr:"almak"},
-  {eng:"give", tr:"vermek"},
-  {eng:"go", tr:"gitmek"},
-  {eng:"grow", tr:"büyümek"},
-  {eng:"hang", tr:"asmak"},
-  {eng:"have", tr:"sahip olmak"},
-  {eng:"hear", tr:"duymak"},
-  {eng:"hide", tr:"saklamak"},
-  {eng:"hit", tr:"vurmak"},
-  {eng:"hold", tr:"tutmak"},
-  {eng:"hurt", tr:"incitmek"},
-  {eng:"keep", tr:"tutmak"},
-  {eng:"know", tr:"bilmek"},
-  {eng:"lay", tr:"koymak"},
-  {eng:"lead", tr:"yönetmek / öncülük etmek"},
-  {eng:"leave", tr:"ayrılmak / bırakmak"},
-  {eng:"lend", tr:"ödünç vermek"},
-  {eng:"let", tr:"izin vermek"},
-  {eng:"lie", tr:"uzanmak"},
-  {eng:"lose", tr:"kaybetmek"},
-  {eng:"make", tr:"yapmak"},
-  {eng:"mean", tr:"anlamına gelmek"},
-  {eng:"meet", tr:"tanışmak / buluşmak"},
-  {eng:"pay", tr:"ödemek"},
-  {eng:"put", tr:"koymak"},
-  {eng:"quit", tr:"bırakmak"},
-  {eng:"read", tr:"okumak"},
-  {eng:"ride", tr:"binmek"},
-  {eng:"ring", tr:"çalmak (zil/telefon)"},
-  {eng:"rise", tr:"yükselmek"},
-  {eng:"run", tr:"koşmak"},
-  {eng:"say", tr:"söylemek"},
-  {eng:"see", tr:"görmek"},
-  {eng:"seek", tr:"aramak (çabalamak)"},
-  {eng:"sell", tr:"satmak"},
-  {eng:"send", tr:"göndermek"},
-  {eng:"set", tr:"ayarlamak / koymak"},
-  {eng:"sew", tr:"dikmek"},
-  {eng:"shake", tr:"sallamak"},
-  {eng:"shine", tr:"parlamak"},
-  {eng:"shoot", tr:"ateş etmek / vurmak"},
-  {eng:"show", tr:"göstermek"},
-  {eng:"sing", tr:"şarkı söylemek"},
-  {eng:"sink", tr:"batmak"},
-  {eng:"sit", tr:"oturmak"},
-  {eng:"sleep", tr:"uyumak"},
-  {eng:"slide", tr:"kaymak"},
-  {eng:"speak", tr:"konuşmak"},
-  {eng:"spend", tr:"harcamak"},
-  {eng:"spread", tr:"yaymak"},
-  {eng:"stand", tr:"ayakta durmak"},
-  {eng:"steal", tr:"çalmak"},
-  {eng:"stick", tr:"yapıştırmak"},
-  {eng:"strike", tr:"vurmak / grev yapmak"},
-  {eng:"swear", tr:"küfretmek / yemin etmek"},
-  {eng:"sweep", tr:"süpürmek"},
-  {eng:"swell", tr:"şişmek"},
-  {eng:"swim", tr:"yüzmek"},
-  {eng:"swing", tr:"sallanmak"},
-  {eng:"take", tr:"almak"},
-  {eng:"teach", tr:"öğretmek"},
-  {eng:"tear", tr:"yırtmak"},
-  {eng:"tell", tr:"anlatmak"},
-  {eng:"think", tr:"düşünmek"},
-  {eng:"wear", tr:"giymek"},
-  {eng:"weep", tr:"ağlamak"},
-  {eng:"win", tr:"kazanmak"},
-  {eng:"write", tr:"yazmak"}
-];
+const allData = {
+    verbs: [ 
+      {eng:"awake", tr:"uyanmak"},
+      {eng:"be", tr:"olmak"},
+      {eng:"beat", tr:"dövmek / yenmek"},
+      {eng:"begin", tr:"başlamak"},
+      {eng:"bite", tr:"ısırmak"},
+      {eng:"blow", tr:"üflemek"},
+      {eng:"break", tr:"kırmak"},
+      {eng:"bring", tr:"getirmek"},
+      {eng:"build", tr:"inşa etmek"},
+      {eng:"buy", tr:"satın almak"},
+      {eng:"catch", tr:"yakalamak"},
+      {eng:"choose", tr:"seçmek"},
+      {eng:"come", tr:"gelmek"},
+      {eng:"cost", tr:"mal olmak"},
+      {eng:"cut", tr:"kesmek"},
+      {eng:"do", tr:"yapmak"},
+      {eng:"deal", tr:"uğraşmak / ilgilenmek"},
+      {eng:"dig", tr:"kazmak"},
+      {eng:"dream", tr:"rüya görmek"},
+      {eng:"draw", tr:"çizmek"},
+      {eng:"drink", tr:"içmek"},
+      {eng:"drive", tr:"sürmek"},
+      {eng:"eat", tr:"yemek"},
+      {eng:"fall", tr:"düşmek"},
+      {eng:"feed", tr:"beslemek"},
+      {eng:"feel", tr:"hissetmek"},
+      {eng:"fight", tr:"kavga etmek"},
+      {eng:"find", tr:"bulmak"},
+      {eng:"fly", tr:"uçmak"},
+      {eng:"forget", tr:"unutmak"},
+      {eng:"forgive", tr:"affetmek"},
+      {eng:"freeze", tr:"donmak"},
+      {eng:"get", tr:"almak"},
+      {eng:"give", tr:"vermek"},
+      {eng:"go", tr:"gitmek"},
+      {eng:"grow", tr:"büyümek"},
+      {eng:"hang", tr:"asmak"},
+      {eng:"have", tr:"sahip olmak"},
+      {eng:"hear", tr:"duymak"},
+      {eng:"hide", tr:"saklamak"},
+      {eng:"hit", tr:"vurmak"},
+      {eng:"hold", tr:"tutmak"},
+      {eng:"hurt", tr:"incitmek"},
+      {eng:"keep", tr:"tutmak"},
+      {eng:"know", tr:"bilmek"},
+      {eng:"lay", tr:"koymak"},
+      {eng:"lead", tr:"yönetmek / öncülük etmek"},
+      {eng:"leave", tr:"ayrılmak / bırakmak"},
+      {eng:"lend", tr:"ödünç vermek"},
+      {eng:"let", tr:"izin vermek"},
+      {eng:"lie", tr:"uzanmak"},
+      {eng:"lose", tr:"kaybetmek"},
+      {eng:"make", tr:"yapmak"},
+      {eng:"mean", tr:"anlamına gelmek"},
+      {eng:"meet", tr:"tanışmak / buluşmak"},
+      {eng:"pay", tr:"ödemek"},
+      {eng:"put", tr:"koymak"},
+      {eng:"quit", tr:"bırakmak"},
+      {eng:"read", tr:"okumak"},
+      {eng:"ride", tr:"binmek"},
+      {eng:"ring", tr:"çalmak (zil/telefon)"},
+      {eng:"rise", tr:"yükselmek"},
+      {eng:"run", tr:"koşmak"},
+      {eng:"say", tr:"söylemek"},
+      {eng:"see", tr:"görmek"},
+      {eng:"seek", tr:"aramak (çabalamak)"},
+      {eng:"sell", tr:"satmak"},
+      {eng:"send", tr:"göndermek"},
+      {eng:"set", tr:"ayarlamak / koymak"},
+      {eng:"sew", tr:"dikmek"},
+      {eng:"shake", tr:"sallamak"},
+      {eng:"shine", tr:"parlamak"},
+      {eng:"shoot", tr:"ateş etmek / vurmak"},
+      {eng:"show", tr:"göstermek"},
+      {eng:"sing", tr:"şarkı söylemek"},
+      {eng:"sink", tr:"batmak"},
+      {eng:"sit", tr:"oturmak"},
+      {eng:"sleep", tr:"uyumak"},
+      {eng:"slide", tr:"kaymak"},
+      {eng:"speak", tr:"konuşmak"},
+      {eng:"spend", tr:"harcamak"},
+      {eng:"spread", tr:"yaymak"},
+      {eng:"stand", tr:"ayakta durmak"},
+      {eng:"steal", tr:"çalmak"},
+      {eng:"stick", tr:"yapıştırmak"},
+      {eng:"strike", tr:"vurmak / grev yapmak"},
+      {eng:"swear", tr:"küfretmek / yemin etmek"},
+      {eng:"sweep", tr:"süpürmek"},
+      {eng:"swell", tr:"şişmek"},
+      {eng:"swim", tr:"yüzmek"},
+      {eng:"swing", tr:"sallanmak"},
+      {eng:"take", tr:"almak"},
+      {eng:"teach", tr:"öğretmek"},
+      {eng:"tear", tr:"yırtmak"},
+      {eng:"tell", tr:"anlatmak"},
+      {eng:"think", tr:"düşünmek"},
+      {eng:"wear", tr:"giymek"},
+      {eng:"weep", tr:"ağlamak"},
+      {eng:"win", tr:"kazanmak"},
+      {eng:"write", tr:"yazmak"}
+    ],
+    placeAdverbs: [
+      {eng:"here", tr:"burada, buraya"},
+      {eng:"there", tr:"orada, oraya"},
+      {eng:"everywhere", tr:"her yerde"},
+      {eng:"nowhere", tr:"hiçbir yerde"},
+      {eng:"somewhere", tr:"bir yerde, bir yere"},
+      {eng:"anywhere", tr:"herhangi bir yerde"},
+      {eng:"inside", tr:"içeride, içeriye"},
+      {eng:"outside", tr:"dışarıda, dışarıya"},
+      {eng:"upstairs", tr:"yukarıda, üst katta"},
+      {eng:"downstairs", tr:"aşağıda, alt katta"},
+      {eng:"above", tr:"yukarıda, üstte"},
+      {eng:"below", tr:"aşağıda, altta"},
+      {eng:"near", tr:"yakınlarda, yakın"},
+      {eng:"far", tr:"uzakta, uzak"},
+      {eng:"ahead", tr:"önde, ileri"},
+      {eng:"behind", tr:"arkada, geride"},
+      {eng:"around", tr:"etrafta, civarda"},
+      {eng:"away", tr:"uzağa, uzakta"},
+      {eng:"over", tr:"üzerinde (temassız)"},
+      {eng:"under", tr:"altında"}
+    ]
+};
 
-let verbs = [...allVerbs]; // Başlangıçta tüm fiilleri içerir, quiz için filtrelenir.
-const STORAGE_KEY = 'learnedVerbs'; 
+let currentCategory = 'verbs'; // Varsayılan kategori
+let currentList = allData[currentCategory]; // Şu anki quiz listesi
+let index = 0;
+let running = false;
+let timers = []; 
+let learnedVerbEngs = {}; // Kategori bazında depolama için nesneye dönüştür
+let showDelay = 5000; 
+let nextDelay = 1000; 
 
+// DOM Elementleri
 const engEl = document.getElementById('eng');
 const turEl  = document.getElementById('tur');
 const startBtn = document.getElementById('startBtn');
@@ -195,124 +230,166 @@ const delayEng = document.getElementById('delayEng');
 const delayNext = document.getElementById('delayNext');
 const delayVal = document.getElementById('delayVal');
 const nextVal = document.getElementById('nextVal');
+const delayVal2 = document.getElementById('delayVal2'); // Subtitle güncellemesi
+const nextVal2 = document.getElementById('nextVal2'); // Subtitle güncellemesi
 const progressEl = document.getElementById('progress');
 const counterEl = document.getElementById('counter');
 const preview = document.getElementById('preview');
 const exportBtn = document.getElementById('exportBtn');
-const clearStorageBtn = document.getElementById('clearStorageBtn'); // Yeni buton
+const clearStorageBtn = document.getElementById('clearStorageBtn');
+const mainTitle = document.getElementById('mainTitle');
+const previewTitle = document.getElementById('previewTitle');
+const listNameFooter = document.getElementById('listNameFooter');
 
-let index = 0;
-let running = false;
-let timers = []; 
-let showDelay = parseInt(delayEng.value,10) * 1000; 
-let nextDelay = parseInt(delayNext.value,10) * 1000; 
+const categoryRadios = document.querySelectorAll('input[name="category"]');
+const STORAGE_KEY = 'learnedWords_AllCategories'; 
 
-let learnedVerbEngs = new Set(); 
 
 // --- Uygulama Yönetimi Fonksiyonları ---
 
 function initializeApp(){
-    loadLearnedVerbs();
-    renderPreviewList();
-    filterVerbsForQuiz();
-    updateProgress();
+    loadLearnedWords();
+    setCategory('verbs'); // İlk yüklemede fiilleri ayarla
+    updateDelayValues(delayEng.value, delayNext.value);
 }
 
-function loadLearnedVerbs(){
-    try {
-        const storedList = localStorage.getItem(STORAGE_KEY);
-        if(storedList){
-            const parsedList = JSON.parse(storedList);
-            learnedVerbEngs = new Set(parsedList);
-        } else {
-            learnedVerbEngs = new Set();
-        }
-    } catch(e) {
-        console.error("Öğrenilen fiiller yüklenirken hata:", e);
-        learnedVerbEngs = new Set();
-    }
+function updateDelayValues(engDelay, nextDelay){
+    showDelay = parseInt(engDelay, 10) * 1000;
+    nextDelay = parseInt(nextDelay, 10) * 1000;
+    delayVal.textContent = engDelay + "s";
+    delayVal2.textContent = engDelay + "s";
+    nextVal.textContent = nextDelay + "s";
+    nextVal2.textContent = nextDelay + "s";
 }
 
-function saveLearnedVerbs(){
-    try {
-        const listToStore = Array.from(learnedVerbEngs);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(listToStore));
-    } catch(e) {
-        console.error("Öğrenilen fiiller kaydedilirken hata:", e);
-    }
+
+function loadLearnedWords(){
+    try {
+        const storedData = localStorage.getItem(STORAGE_KEY);
+        if(storedData){
+            learnedVerbEngs = JSON.parse(storedData);
+        } else {
+            learnedVerbEngs = { verbs: [], placeAdverbs: [] };
+        }
+    } catch(e) {
+        console.error("Öğrenilen kelimeler yüklenirken hata:", e);
+        learnedVerbEngs = { verbs: [], placeAdverbs: [] };
+    }
+}
+
+function saveLearnedWords(){
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(learnedVerbEngs));
+    } catch(e) {
+        console.error("Öğrenilen kelimeler kaydedilirken hata:", e);
+    }
+}
+
+function handleCheckboxChange(e){
+    const wordEng = e.target.dataset.eng;
+    const category = e.target.dataset.category;
+    const categorySet = new Set(learnedVerbEngs[category] || []);
+
+    if(e.target.checked){
+        categorySet.add(wordEng);
+    } else {
+        categorySet.delete(wordEng);
+    }
+
+    learnedVerbEngs[category] = Array.from(categorySet);
+    saveLearnedWords();
+    filterListForQuiz();
+    updateProgress();
+
+    // Quiz çalışırken liste değişirse durdur
+    if(running){
+        pauseQuizState(true);
+    } else if (currentList.length === 0){
+        showFinishMessage("Tüm kelimeler öğrenildi! 🎉", "Yeni kelimeler eklemek için seçimleri kaldırın.");
+    } else if (index >= currentList.length) {
+        index = 0;
+        engEl.textContent = "Liste Güncellendi. Baştan Başlat.";
+        turEl.textContent = "Quiz kaldırdığınız kelimeleri atlayacak.";
+        turEl.style.opacity = 1;
+    }
 }
 
 
 function renderPreviewList(){
-    // Önceki olay dinleyicilerini kaldır, çift dinleyici oluşmasını engelle
-    document.querySelectorAll('.list-item input[type="checkbox"]').forEach(checkbox => {
-        checkbox.removeEventListener('change', handleCheckboxChange);
-    });
+    // Önceki olay dinleyicilerini kaldır
+    document.querySelectorAll('.list-item input[type="checkbox"]').forEach(checkbox => {
+        checkbox.removeEventListener('change', handleCheckboxChange);
+    });
 
-    preview.innerHTML = allVerbs.map((v, i) => {
-        const isChecked = learnedVerbEngs.has(v.eng) ? 'checked' : '';
-        const id = `verb-${v.eng}`;
-        return `
-            <div class="list-item">
-                <input type="checkbox" id="${id}" data-eng="${v.eng}" ${isChecked}>
-                <label for="${id}">
-                    <strong>${i+1}.</strong> ${v.eng} — <span style="color:#9fb7d4">${v.tr}</span>
-                </label>
-            </div>
-        `;
-    }).join('');
-    
-    // Checkbox olay dinleyicilerini tekrar ekle
-    document.querySelectorAll('.list-item input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', handleCheckboxChange);
-    });
+    const currentAllList = allData[currentCategory];
+    const currentLearnedSet = new Set(learnedVerbEngs[currentCategory] || []);
+
+    preview.innerHTML = currentAllList.map((v, i) => {
+        const isChecked = currentLearnedSet.has(v.eng) ? 'checked' : '';
+        const id = `word-${currentCategory}-${v.eng}`;
+        return `
+            <div class="list-item">
+                <input type="checkbox" id="${id}" data-eng="${v.eng}" data-category="${currentCategory}" ${isChecked}>
+                <label for="${id}">
+                    <strong>${i+1}.</strong> ${v.eng} — <span style="color:#9fb7d4">${v.tr}</span>
+                </label>
+            </div>
+        `;
+    }).join('');
+    
+    // Checkbox olay dinleyicilerini tekrar ekle
+    document.querySelectorAll('.list-item input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', handleCheckboxChange);
+    });
 }
 
-function handleCheckboxChange(e){
-    const verbEng = e.target.dataset.eng;
-    if(e.target.checked){
-        learnedVerbEngs.add(verbEng);
-    } else {
-        learnedVerbEngs.delete(verbEng);
-    }
-    saveLearnedVerbs();
-    filterVerbsForQuiz(); 
-    updateProgress();
-
-    // Quiz çalışırken liste değişirse durdur
-    if(running){
-        clearAllTimers();
-        running = false;
-        startBtn.textContent = "Devam Et";
-        pauseBtn.disabled = true;
-        
-        if(verbs.length === 0){
-             engEl.textContent = "Tüm fiiller öğrenildi! 🎉";
-             turEl.textContent = "Seçimleri kaldırarak yeni fiiller ekleyebilirsiniz.";
-             turEl.style.opacity = 1;
-        } else if(index >= verbs.length) {
-            index = 0;
-            engEl.textContent = "Liste Güncellendi. Baştan Başlat.";
-            turEl.textContent = "Quiz kaldırdığınız fiilleri atlayacak.";
-            turEl.style.opacity = 1;
-        } else {
-            engEl.textContent = verbs[index].eng; // Mevcut fiili göster
-            turEl.textContent = "Duraklatıldı. Devam etmek için 'Devam Et'e basın.";
-            turEl.style.opacity = 1;
-        }
-    } else if (verbs.length === 0){
-        // Quiz çalışmıyorken tüm fiiller kaldırıldıysa
-        index = 0;
-        engEl.textContent = "Tüm fiiller öğrenildi! 🎉";
-        turEl.textContent = "Yeni fiiller eklemek için seçimleri kaldırın.";
-        turEl.style.opacity = 1;
-    }
+function filterListForQuiz(){
+    const currentLearnedSet = new Set(learnedVerbEngs[currentCategory] || []);
+    currentList = allData[currentCategory].filter(v => !currentLearnedSet.has(v.eng));
+    if(index >= currentList.length) index = 0;
 }
 
-function filterVerbsForQuiz(){
-    verbs = allVerbs.filter(v => !learnedVerbEngs.has(v.eng));
-    if(index >= verbs.length) index = 0;
+
+// --- Kategori Yönetimi ---
+
+function updateUITitles(category){
+    switch(category){
+        case 'verbs':
+            mainTitle.textContent = "100 Düzensiz / Yaygın Fiil — İngilizce → Türkçe";
+            previewTitle.innerHTML = "Fiillerin Önizlemesi";
+            listNameFooter.textContent = "100 fiil";
+            break;
+        case 'placeAdverbs':
+            mainTitle.textContent = "Yer Belirteçleri (Adverbs of Place) — İngilizce → Türkçe";
+            previewTitle.innerHTML = "Yer Belirteçlerinin Önizlemesi";
+            listNameFooter.textContent = "Yer Belirteçleri";
+            break;
+        default:
+            mainTitle.textContent = "İngilizce Quiz";
+            previewTitle.innerHTML = "Listenin Önizlemesi";
+            listNameFooter.textContent = "Öğe Listesi";
+            break;
+    }
 }
+
+function setCategory(category){
+    if(running) pauseQuizState(false);
+    
+    currentCategory = category;
+    updateUITitles(category);
+    filterListForQuiz();
+    renderPreviewList();
+    updateProgress();
+    index = 0; // Kategori değiştiğinde sıfırla
+
+    // Arayüzü başlatma durumuna getir
+    engEl.textContent = "Hazır?";
+    turEl.textContent = "Başlat düğmesine bas.";
+    turEl.style.opacity = 0;
+    startBtn.textContent = "Başlat";
+    pauseBtn.disabled = true;
+}
+
 
 // --- Quiz Akış Fonksiyonları ---
 
@@ -321,43 +398,56 @@ function clearAllTimers(){
   timers = [];
 }
 
-function updateProgress(){
-  const total = allVerbs.length;
-  const remaining = verbs.length;
-  const completedInQuiz = index; 
-
-  const pct = remaining > 0 ? Math.round((completedInQuiz/remaining)*100) : 100;
-  progressEl.style.width = pct + '%';
-  
-  counterEl.textContent = `${Math.min(completedInQuiz, remaining)} / ${remaining} (Toplam: ${total})`;
-}
-
-function showPair(i){
-  if(verbs.length === 0){
-    engEl.textContent = "Tüm fiiller öğrenildi! 🎉";
-    turEl.textContent = "Yeni fiiller eklemek için seçimleri kaldırın.";
+function showFinishMessage(engText, turText){
+    engEl.textContent = engText;
+    turEl.textContent = turText;
     turEl.style.opacity = 1;
     running = false;
     pauseBtn.disabled = true;
     startBtn.textContent = "Yeniden Başlat";
+}
+
+function pauseQuizState(listChanged = false){
+    clearAllTimers();
+    running = false;
+    startBtn.textContent = listChanged ? "Devam Et" : "Devam Et";
+    pauseBtn.disabled = true;
+    turEl.textContent = "Duraklatıldı.";
+    turEl.style.opacity = 1;
+    engEl.textContent = currentList.length > 0 && index < currentList.length ? currentList[index].eng : "Liste Güncellendi.";
+}
+
+
+function updateProgress(){
+  const total = allData[currentCategory].length;
+  const remaining = currentList.length;
+  const completedInQuiz = index; 
+
+  const totalCompleted = total - remaining;
+  const currentProgress = remaining > 0 ? completedInQuiz : 0;
+
+  const pct = remaining > 0 ? Math.round((currentProgress/remaining)*100) : 100;
+  progressEl.style.width = pct + '%';
+  
+  counterEl.textContent = `${Math.min(currentProgress, remaining)} / ${remaining} (Toplam: ${totalCompleted} öğrenilmiş)`;
+}
+
+function showPair(i){
+  if(currentList.length === 0){
+    showFinishMessage("Tüm kelimeler öğrenildi! 🎉", "Yeni kelimeler eklemek için seçimleri kaldırın.");
     index = 0;
     updateProgress();
     return;
   }
-  
-  if(i >= verbs.length){
-    engEl.textContent = "Bitti ✅";
-    turEl.textContent = `Tebrikler — kalan ${verbs.length} fiil tamamlandı.`;
-    turEl.style.opacity = 1;
-    running = false;
-    pauseBtn.disabled = true;
-    startBtn.textContent = "Yeniden Başlat";
-    index = verbs.length; 
+  
+  if(i >= currentList.length){
+    showFinishMessage("Bitti ✅", `Tebrikler — kalan ${currentList.length} kelime tamamlandı.`);
+    index = currentList.length; 
     updateProgress();
     return;
   }
 
-  const item = verbs[i];
+  const item = currentList[i];
   turEl.style.opacity = 0;
   engEl.textContent = item.eng;
   turEl.textContent = item.tr;
@@ -381,17 +471,15 @@ function showPair(i){
 // --- Olay Dinleyicileri ---
 
 startBtn.addEventListener('click', ()=>{
-  if(verbs.length === 0){
-        engEl.textContent = "Tüm fiiller öğrenildi! 🎉";
-        turEl.textContent = "Yeni fiiller eklemek için seçimleri kaldırın.";
-        turEl.style.opacity = 1;
-        return;
-  }
+  if(currentList.length === 0){
+    showFinishMessage("Tüm kelimeler öğrenildi! 🎉", "Yeni kelimeler eklemek için seçimleri kaldırın.");
+    return;
+  }
   if(!running){
     running = true;
     startBtn.textContent = "Çalışıyor... (Duraklatmak için Durdur'a bas)";
     pauseBtn.disabled = false;
-    if(index >= verbs.length) index = 0;
+    if(index >= currentList.length) index = 0;
     clearAllTimers();
     showPair(index);
   }
@@ -399,65 +487,54 @@ startBtn.addEventListener('click', ()=>{
 
 pauseBtn.addEventListener('click', ()=>{
   if(running){
-    running = false;
-    startBtn.textContent = "Devam Et";
-    pauseBtn.disabled = true;
-    clearAllTimers();
-    turEl.textContent = "Duraklatıldı.";
-    turEl.style.opacity = 1;
+    pauseQuizState(false);
   }
 });
 
 restartBtn.addEventListener('click', ()=>{
-  clearAllTimers();
-  running = false;
-  index = 0;
-  filterVerbsForQuiz(); 
-  if(verbs.length === 0){
-    engEl.textContent = "Tüm fiiller öğrenildi! 🎉";
-    turEl.textContent = "Yeni fiiller eklemek için seçimleri kaldırın.";
-  } else {
-    engEl.textContent = "Hazır?";
-    turEl.textContent = "Başlat düğmesine bas.";
-  }
-  turEl.style.opacity = 0;
-  startBtn.textContent = "Başlat";
-  pauseBtn.disabled = true;
+  setCategory(currentCategory); // Kategori ayarını koruyarak yeniden başlat
   updateProgress();
 });
 
 // Yeni: localStorage'ı sıfırla butonu
 clearStorageBtn.addEventListener('click', ()=>{
-    if(confirm("Emin misiniz? Öğrendiğiniz tüm fiiller (checkbox işaretleri) sıfırlanacak ve hepsi tekrar quiz'e dahil edilecek.")){
-        localStorage.removeItem(STORAGE_KEY);
-        learnedVerbEngs = new Set();
-        clearAllTimers();
-        running = false;
-        index = 0;
-        
-        initializeApp(); // Tüm ayarları yeniden yükle ve sıfırla
-        
-        // Arayüzü sıfırlama durumuna getir
-        engEl.textContent = "Tüm Fiiller Geri Yüklendi!";
-        turEl.textContent = "Öğrenilenler sıfırlandı. Başlat düğmesine bas.";
-        turEl.style.opacity = 1;
-        startBtn.textContent = "Başlat";
-        pauseBtn.disabled = true;
-        alert("Öğrenilen fiil listesi başarıyla sıfırlandı.");
-    }
+    if(confirm("Emin misiniz? Öğrendiğiniz tüm kelimeler (checkbox işaretleri) sıfırlanacak ve hepsi tekrar quiz'e dahil edilecek.")){
+        localStorage.removeItem(STORAGE_KEY);
+        learnedVerbEngs = { verbs: [], placeAdverbs: [] };
+        clearAllTimers();
+        running = false;
+        index = 0;
+        
+        setCategory(currentCategory); // Güncel kategoriyi sıfırla
+        
+        // Arayüzü sıfırlama durumuna getir
+        engEl.textContent = "Tüm Kelimeler Geri Yüklendi!";
+        turEl.textContent = "Öğrenilenler sıfırlandı. Başlat düğmesine bas.";
+        turEl.style.opacity = 1;
+        startBtn.textContent = "Başlat";
+        pauseBtn.disabled = true;
+        alert("Öğrenilen kelime listesi başarıyla sıfırlandı.");
+    }
 });
 
+// Kategori Seçimi Dinleyicileri
+categoryRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        setCategory(e.target.value);
+    });
+});
+
+
 delayEng.addEventListener('input', (e)=>{
-  delayVal.textContent = e.target.value + "s";
-  showDelay = parseInt(e.target.value,10) * 1000;
+  updateDelayValues(e.target.value, delayNext.value);
 });
 delayNext.addEventListener('input', (e)=>{
-  nextVal.textContent = e.target.value + "s";
-  nextDelay = parseInt(e.target.value,10) * 1000;
+  updateDelayValues(delayEng.value, e.target.value);
 });
 
 exportBtn.addEventListener('click', ()=>{
-  const txt = allVerbs.map((v,i)=> `${i+1}. ${v.eng} — ${v.tr}`).join('\n');
+  const currentAllList = allData[currentCategory];
+  const txt = currentAllList.map((v,i)=> `${i+1}. ${v.eng} — ${v.tr}`).join('\n');
   navigator.clipboard.writeText(txt).then(()=> {
     exportBtn.textContent = "Kopyalandı!";
     setTimeout(()=> exportBtn.textContent = "Listeyi Kopyala",1200);
@@ -469,7 +546,7 @@ exportBtn.addEventListener('click', ()=>{
 window.addEventListener('keydown', (e)=>{
   if(e.code === "Space"){
     e.preventDefault();
-    if(verbs.length > 0){
+    if(currentList.length > 0){
       if(running) pauseBtn.click(); else startBtn.click();
     }
   }
